@@ -19,6 +19,21 @@ recommended, and a new one should be generated immediately after job creation
 is complete (this prevents any active token from sticking around in your
 :code:`.bash_history`).
 
+If you're on a typical Unix-like system you should be fine; the scripts assume
+a typical suite of CLI tools, including :code:`find`, :code:`curl`,
+:code:`sed`, :code:`cut`, and :code:`basename`.  They assume you have
+everything required in :code:`PATH`.
+
+Example:
+
+.. code:: bash
+
+    # username: snewell
+    # API token: b211f7531eb3a674753a28b54ca3369d
+    sh create_all_builds.sh http://localhost:8080 snewell \
+       b211f7531eb3a674753a28b54ca3369d bureaucracy-builds \
+       https://github.com/snewell/bureaucracy/ master`
+
 
 Build Customization
 -------------------
