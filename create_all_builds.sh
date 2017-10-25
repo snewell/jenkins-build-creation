@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# comment out if your jenkins server isn't usin ga self-signed certificate
+INSECURE_CURL="--insecure"
+
 usage() {
 	echo "${0} <jenkins-url> <username> <authentication-token> <name> <git url> <git branch>"
 }
@@ -11,7 +14,9 @@ get_crumb() {
 
 	# curl command pilfered from cloudbees: https://support.cloudbees.com/hc/en-us/articles/219257077-CSRF-Protection-Explained
 	curl "${jenkins_url}/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)" \
-	     --user "${1}:${2}" 2>/dev/null
+	     --silent --show-error \
+	     "${INSECURE_CURL}" \
+	     --user "${1}:${2}" 2>&1
 }
 
 make_folder() {
@@ -23,9 +28,11 @@ make_folder() {
 
 	# modified from this example: https://gist.github.com/stuart-warren/7786892
 	curl -XPOST "${jenkins_url}/createItem?name=${folder_name}&mode=com.cloudbees.hudson.plugins.folder.Folder&from=&json=%7B%22name%22%3A%22${folder_name}%22%2C%22mode%22%3A%22com.cloudbees.hudson.plugins.folder.Folder%22%2C%22from%22%3A%22%22%2C%22Submit%22%3A%22OK%22%7D&Submit=OK" \
-	    --user "${user}:${auth_token}" \
-	    --header "Content-Type:application/x-www-form-urlencoded" \
-	    --header "${crumb}" 2>/dev/null
+	     --silent --show-error \
+	     "${INSECURE_CURL}" \
+	     --user "${user}:${auth_token}" \
+	     --header "Content-Type:application/x-www-form-urlencoded" \
+	     --header "${crumb}" 2>&1
 }
 
 make_job() {
@@ -37,11 +44,13 @@ make_job() {
 	job_name=${6}
 
 	# modified from this example: https://gist.github.com/stuart-warren/7786892
-	curl -s -XPOST "${jenkins_url}/job/${folder_name}/createItem?name=${job_name}" \
-	    --data-binary @- \
-	    --user "${user}:${auth_token}" \
-	    --header "Content-Type:text/xml" \
-	    --header "${crumb}" 2>/dev/null
+	curl -XPOST "${jenkins_url}/job/${folder_name}/createItem?name=${job_name}" \
+	     --silent --show-error \
+	     "${INSECURE_CURL}" \
+	     --data-binary @- \
+	     --user "${user}:${auth_token}" \
+	     --header "Content-Type:text/xml" \
+	     --header "${crumb}" 2>&1
 }
 
 make_jobs() {
@@ -59,7 +68,7 @@ make_jobs() {
 		result=$(sed -e "s^GIT_URL^${git_url}^g" \
 		             -e "s^GIT_BRANCH^${git_branch}^g" "${config_file}" |
 		         make_job "${user}" "${auth_token}" "${jenkins_url}" "${crumb}" "${name}" "${job_name}")
-		if [ $(echo "${result}" | wc -l) -eq 1 ]; then
+		if [ ${?} -eq 0 ] && [ $(echo "${result}" | wc -l) -eq 1 ]; then
 			success=$((${success} + 1))
 		else
 			failed=$((${failed} + 1))
@@ -90,10 +99,10 @@ if [ ${#} -eq 6 ]; then
 	git_branch=${6}
 
 	crumb=$(get_crumb "${user}" "${auth_token}" "${jenkins_url}")
-	if [ $(echo "${crumb}" | wc -l) -eq 1 ]; then
+	if [ ${?} -eq 0 ]  && [ $(echo "${crumb}" | wc -l) -eq 1 ]; then
 		# the crumb should be one line, so if we got more something bad happened
 		result=$(make_folder "${user}" "${auth_token}" "${jenkins_url}" "${crumb}" "${name}")
-		if [ $(echo "${result}" | wc -l) -eq 1 ]; then
+		if [ ${?} -eq 0 ] && [ $(echo "${result}" | wc -l) -eq 1 ]; then
 			# folder's been created, so make all the jobs
 			make_jobs "${user}" "${auth_token}" "${jenkins_url}" "${crumb}" "${name}"
 		else
