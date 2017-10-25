@@ -43,6 +43,43 @@ make_job() {
 	    --header "${crumb}" 2>/dev/null
 }
 
+make_jobs() {
+	user=${1}
+	auth_token=${2}
+	jenkins_url=${3}
+	crumb=${4}
+	folder_name=${5}
+
+	success=0
+	failed=0
+	find "$(dirname ${0})/build-configs" -name '*.xml' |
+	while read config_file; do
+		job_name=$(basename "${config_file}" | cut '-d.' -f 1)
+		result=$(sed -e "s^GIT_URL^${git_url}^g" \
+		             -e "s^GIT_BRANCH^${git_branch}^g" "${config_file}" |
+		         make_job "${user}" "${auth_token}" "${jenkins_url}" "${crumb}" "${name}" "${job_name}")
+		if [ $(echo "${result}" | wc -l) -eq 1 ]; then
+			success=$((${success} + 1))
+		else
+			failed=$((${failed} + 1))
+			echo -e "Failed to create ${folder_name}/${job_name}\n${result}"
+		fi
+	done
+
+	if [ ${failed} -eq 0 ]; then
+		# great, everything worked!
+		exit 0
+	else
+		if [ ${success} -gt 0 ]; then
+			# some jobs created
+			exit 2
+		else
+			# everything failed
+			exit 3
+		fi
+	fi
+}
+
 if [ ${#} -eq 6 ]; then
 	jenkins_url=${1}
 	user=${2}
@@ -57,34 +94,7 @@ if [ ${#} -eq 6 ]; then
 		result=$(make_folder "${user}" "${auth_token}" "${jenkins_url}" "${crumb}" "${name}")
 		if [ $(echo "${result}" | wc -l) -eq 1 ]; then
 			# folder's been created, so make all the jobs
-			success=0
-			failed=0
-			find "$(dirname ${0})/build-configs" -name '*.xml' |
-			while read config_file; do
-				job_name=$(basename "${config_file}" | cut '-d.' -f 1)
-				result=$(sed -e "s^GIT_URL^${git_url}^g" \
-				             -e "s^GIT_BRANCH^${git_branch}^g" "${config_file}" |
-				         make_job "${user}" "${auth_token}" "${jenkins_url}" "${crumb}" "${name}" "${job_name}")
-				if [ $(echo "${result}" | wc -l) -eq 1 ]; then
-					success=$((${success} + 1))
-				else
-					failed=$((${failed} + 1))
-					echo -e "Failed to create ${folder_name}/${job_name}\n${result}"
-				fi
-			done
-
-			if [ ${failed} -eq 0 ]; then
-				# great, everything worked!
-				exit 0
-			else
-				if [ ${success} -gt 0 ]; then
-					# some jobs created
-					exit 2
-				else
-					# everything failed
-					exit 3
-				fi
-			fi
+			make_jobs "${user}" "${auth_token}" "${jenkins_url}" "${crumb}" "${name}"
 		else
 			echo -e "Failed to create project folder\n${result}" >&2
 			exit 1
