@@ -10,7 +10,8 @@ get_crumb() {
 	jenkins_url=${3}
 
 	# curl command pilfered from cloudbees: https://support.cloudbees.com/hc/en-us/articles/219257077-CSRF-Protection-Explained
-	curl -u "${1}:${2}" "${jenkins_url}/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)" 2>/dev/null
+	curl "${jenkins_url}/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)" \
+	     --user "${1}:${2}" 2>/dev/null
 }
 
 make_folder() {
