@@ -65,7 +65,7 @@ make_jobs() {
 	find "$(dirname ${0})/build-configs" -name '*.xml' |
 	{
 		while read config_file; do
-			job_name=$(basename "${config_file}" | cut '-d.' -f 1)
+			job_name=$(basename "${config_file}" | sed 's/\.xml$//')
 			result=$(sed -e "s^GIT_URL^${git_url}^g" \
 			             -e "s^GIT_BRANCH^${git_branch}^g" "${config_file}" |
 			         make_job "${user}" "${auth_token}" "${jenkins_url}" "${crumb}" "${name}" "${job_name}")
