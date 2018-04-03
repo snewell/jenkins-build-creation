@@ -31,7 +31,7 @@
     <script>quickBuild {
     git = &apos;GIT_URL&apos;
     branch = &apos;GIT_BRANCH&apos;
-    cxx = &apos;g++-7.2.0&apos;
+    cxx = &apos;g++-7.3.0&apos;
 }
 </script>
     <sandbox>true</sandbox>
